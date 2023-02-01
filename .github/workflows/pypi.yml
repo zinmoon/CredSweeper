@@ -16,7 +16,7 @@ jobs:
     permissions:
       id-token: write
       contents: write
-    uses: samsung/supplychainassurance/.github/workflows/python-releasor@change-generator
+    uses: samsung/supplychainassurance/.github/workflows/python-releasor.yml@change-generator
     with:
       version: "3.9"
     secrets:
