@@ -23,7 +23,7 @@ jobs:
       uses: samsung/supplychainassurance/.github/workflows/python_builder.yml@seperate-builder
       with:
         version: "3.10"
-        upload: {{ 'release' == github.event_name }}
+        upload: ${{ 'release' == github.event_name }}
 
     - name: Generate Provenance
       if: ${{ 'release' == github.event_name }}
