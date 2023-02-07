@@ -37,6 +37,7 @@ jobs:
     if: ${{ 'release' == github.event_name }}
     permissions:
       contents: write
+    runs-on: ubuntu-latest
     steps:
     - name: Upload Assets
       uses: samsung/supplychainassurance/.github/actions/upload-release-asset@v1.0.1
