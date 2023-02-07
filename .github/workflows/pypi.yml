@@ -4,6 +4,10 @@
 name: Publish to PyPi
 
 on:
+  push:
+    branches: [ release-test ]
+  pull_request:
+    branches: [ release-test ]
   release:
     types: [ released ]
 
@@ -12,16 +16,37 @@ jobs:
     permissions:
       id-token: write
       contents: write
-    uses: samsung/supplychainassurance/.github/workflows/python_releasor.yml@v1.0.1
-    with:
-      version: "3.10"
-    secrets:
-      EXPECTED_REPOSITORY: "${{ secrets.EXPECTED_REPOSITORY }}"
-      ECODETOKEN: "${{ secrets.ECODE_TOKEN }}"
-      GITHUBTOKEN: "${{ secrets.GITHUB_TOKEN }}"
+    runs-on: ubuntu-latest
+    steps:
+    - name: Build
+      id: build
+      uses: samsung/supplychainassurance/.github/workflows/python_releasor.yml@seperate-builder
+      with:
+        version: "3.10"
+        upload: {{ 'release' == github.event_name }}
+
+    - name: Generate Provenance
+      if: ${{ 'release' == github.event_name }}
+      id: genprvn
+      uses: samsung/supplychainassurance/.github/actions/slsa_release.yml@v1.0.1
+      with:
+        hash: "${{ steps.build.outputs.hash }}"
+        artifact: "${{ steps.build.outputs.artifact }}"
+        build_cmd: "${{ steps.build.outputs.build_command }}"
+      secrets:
+        EXPECTED_REPOSITORY: "${{ secrets.EXPECTED_REPOSITORY }}"
+        ECODETOKEN: "${{ secrets.ECODE_TOKEN }}"
+
+    - name: Upload Assets
+      if: ${{ 'release' == github.event_name }}
+      uses: samsung/supplychainassurance/.github/actions/upload-release-asset@v1.0.1
+      env:
+        GITHUBTOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        artifacts: ${{ steps.genprvn.outputs.artifacts }}
 
   deploy:
-
+    if: ${{ 'release' == github.event_name }}
     runs-on: ubuntu-latest
     needs: [ release ]
     steps:
@@ -32,7 +57,6 @@ jobs:
         hash: ${{ needs.release.outputs.hash }}
 
     - name: Publish
-      if: ${{ 'release' == github.event_name }}
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
@@ -41,7 +65,6 @@ jobs:
         twine upload ${{ needs.release.outputs.artifact }}
 
     - name: Test for creation sphinx documentations
-      if: ${{ 'release' != github.event_name }}
       run: |
         python --version
         pip install -r requirements.txt
