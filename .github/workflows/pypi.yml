@@ -20,7 +20,7 @@ jobs:
     steps:
     - name: Build
       id: build
-      uses: samsung/supplychainassurance/.github/workflows/python_releasor.yml@seperate-builder
+      uses: samsung/supplychainassurance/.github/workflows/python_builder.yml@seperate-builder
       with:
         version: "3.10"
         upload: {{ 'release' == github.event_name }}
