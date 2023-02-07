@@ -23,7 +23,7 @@ jobs:
     if: ${{ 'release' == github.event_name }}
     permissions:
       id-token: write
-    uses: samsung/supplychainassurance/.github/workflows/slsa_release.yml@v1.0.1
+    uses: samsung/supplychainassurance/.github/workflows/slsa_release.yml@seperate-builder
     with:
       hash: "${{ needs.build.outputs.hash }}"
       artifact: "${{ needs.build.outputs.artifact }}"
