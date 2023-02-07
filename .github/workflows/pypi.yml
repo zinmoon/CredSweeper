@@ -48,7 +48,7 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    needs: [ build, slsa_release, upload ]
+    needs: [ build, slsa_release, upload_asset ]
     if: ${{ 'release' == github.event_name }}
     steps:
     - name: Download Artifacts
