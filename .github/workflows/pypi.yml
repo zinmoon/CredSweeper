@@ -13,44 +13,42 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Build
-      uses: samsung/supplychainassurance/.github/workflows/python_builder.yml@seperate-builder
-      with:
-        version: "3.10"
-        upload: ${{ 'release' == github.event_name }}
+    uses: samsung/supplychainassurance/.github/workflows/python_builder.yml@seperate-builder
+    with:
+      version: "3.10"
+      upload: ${{ 'release' == github.event_name }}
 
-  release:
-    needs: [ Build ]
+  slsa_release:
+    needs: [ build ]
     if: ${{ 'release' == github.event_name }}
     permissions:
       id-token: write
-      contents: write
-    runs-on: ubuntu-latest
-    steps:
-    - name: Generate Provenance
-      id: genprvn
-      uses: samsung/supplychainassurance/.github/actions/slsa_release.yml@v1.0.1
-      with:
-        hash: "${{ needs.Build.outputs.hash }}"
-        artifact: "${{ needs.Build.outputs.artifact }}"
-        build_cmd: "${{ needs.Build.outputs.build_command }}"
-      secrets:
-        EXPECTED_REPOSITORY: "${{ secrets.EXPECTED_REPOSITORY }}"
-        ECODETOKEN: "${{ secrets.ECODE_TOKEN }}"
+    uses: samsung/supplychainassurance/.github/actions/slsa_release.yml@v1.0.1
+    with:
+      hash: "${{ needs.build.outputs.hash }}"
+      artifact: "${{ needs.build.outputs.artifact }}"
+      build_cmd: "${{ needs.build.outputs.build_command }}"
+    secrets:
+      EXPECTED_REPOSITORY: "${{ secrets.EXPECTED_REPOSITORY }}"
+      ECODETOKEN: "${{ secrets.ECODE_TOKEN }}"
 
+  upload_asset:
+    needs: [ build, slsa_release ]
+    if: ${{ 'release' == github.event_name }}
+    permissions:
+      contents: write
+    steps:
     - name: Upload Assets
       uses: samsung/supplychainassurance/.github/actions/upload-release-asset@v1.0.1
       env:
         GITHUBTOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        artifacts: ${{ steps.genprvn.outputs.artifacts }}
+        artifacts: ${{ needs.slsa_release.outputs.artifacts }}
 
   deploy:
-    if: ${{ 'release' == github.event_name }}
     runs-on: ubuntu-latest
-    needs: [ Build, Release ]
+    needs: [ build, slsa_release, upload ]
+    if: ${{ 'release' == github.event_name }}
     steps:
     - name: Download Artifacts
       id: download
@@ -64,7 +62,7 @@ jobs:
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
         cd ${{ steps.download.outputs.outdir }}
-        twine upload ${{ needs.release.outputs.artifact }}
+        twine upload ${{ needs.build.outputs.artifact }}
 
     - name: Test for creation sphinx documentations
       run: |
